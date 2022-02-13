@@ -89,7 +89,11 @@ func main() {
 		)
 		var spotifyToken *oauth2.Token
 		if spotifyTokenString == "" {
-			resp := doSpotifyAuth(ctx, auth)
+			serverAddr := "0.0.0.0:8765"
+			if config.Spotify.AuthCallbackAddr != "" {
+				serverAddr = config.Spotify.AuthCallbackAddr
+			}
+			resp := doSpotifyAuth(ctx, auth, serverAddr)
 			select {
 			case <-ctx.Done():
 				log.Println(ctx.Err())
@@ -102,7 +106,7 @@ func main() {
 					log.Println("Couldn't encode spotify token as JSON:", err)
 					return
 				}
-				_, err = vaultClient.Logical().JSONMergePatch(ctx, "git-now-playing/data/spotify", map[string]interface{}{
+				_, err = vaultClient.Logical().JSONMergePatch(ctx, key, map[string]interface{}{
 					"options": map[string]interface{}{
 						"cas": 1,
 					},

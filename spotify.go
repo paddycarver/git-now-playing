@@ -41,13 +41,13 @@ func getSpotifyNowPlaying(ctx context.Context, client *spotify.Client) (*spotify
 	return cp.Item, nil
 }
 
-func doSpotifyAuth(ctx context.Context, auth *spotifyauth.Authenticator) chan *oauth2.Token {
+func doSpotifyAuth(ctx context.Context, auth *spotifyauth.Authenticator, serverAddr string) chan *oauth2.Token {
 	state := ksuid.New().String()
 	url := auth.AuthURL(state)
 	resp := make(chan *oauth2.Token)
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 	srv := &http.Server{
-		Addr: ":8765",
+		Addr: serverAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := auth.Token(ctx, state, r)
 			if err != nil {

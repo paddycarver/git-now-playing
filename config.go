@@ -23,7 +23,8 @@ func (v VaultConfig) getMountPath() string {
 }
 
 type SpotifyConfig struct {
-	VaultPath string `hcl:"vault_path,optional"`
+	VaultPath        string `hcl:"vault_path,optional"`
+	AuthCallbackAddr string `hcl:"auth_callback_addr,optional"`
 }
 
 type PlexConfig struct {
