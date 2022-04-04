@@ -4,11 +4,13 @@
 aughts' AIM away messages to your git commits, by including what you're
 currently listening to when you write a git commit.
 
-It does this by checking in with Spotify and/or Plex every ten seconds to find
-out what you're listening to, and updating a specified file with that
-information. You can then use this file as your git commit template. There is
-[some consideration](https://github.com/paddycarver/git-now-playing/issues/1)
-happening about whether "just use a git commit hook, dummy" is a better idea.
+There are two ways to do this. By default, the binary just writes properly
+formatted track info to standard output, making it easy to integrate into the
+`prepare-commit-msg` hook in git. If the `--daemon` flag is passed before the
+config file, however, it runs as a background process and checks in with
+Spotify and/or Plex every ten seconds to find out what you're listening to, and
+updating a specified file with that information. You can then use this file as
+your git commit template.
 
 ## Install
 
@@ -31,7 +33,8 @@ vault {
 }
 
 # this block is optional
-# if not set, output gets written to $HOME/.config/gitmessage
+# if not set, output when running as a daemon gets written to
+# $HOME/.config/gitmessage
 output {
   path = "/path/where/file/containing/now/playing/track/should/be/written.txt"
 }
@@ -110,7 +113,9 @@ updates the token after it gets refreshed. Whoooops. Probably should do that.
 
 ### Plex
 
-This bit is easier. You just need to get your hands on [a Plex token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/) and then run
+This bit is easier. You just need to get your hands on [a Plex
+token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/)
+and then run
 
 ```sh
 $ vault kv put git-now-playing/plex token=$PLEX_TOKEN
@@ -118,16 +123,50 @@ $ vault kv put git-now-playing/plex token=$PLEX_TOKEN
 
 ## Running
 
+### Git Hook
+
+Set up a git `prepare-commit-msg` hook that will run this program and prepend
+its standard output to whatever the contents of the commit file are. A sample
+is found below. You need to pass in a `VAULT_TOKEN` environment variable with
+the Vault token that `git-now-playing` can use to read and update secrets with.
+
+#### Setting Up Your Commit Hook
+
+To set up a git hook for this, modify the `.git/hooks/prepare-commit-msg` file
+to look something like this:
+
+```bash
+#!/bin/bash
+COMMIT_MSG_FILE=$1
+NOW_PLAYING=$(VAULT_TOKEN="{vault token here}" /path/to/git-now-playing /path/to/git-now-playing.hcl)
+COMMIT_CONTENTS=$(cat $COMMIT_MSG_FILE)
+
+if [[ ! $COMMIT_CONTENTS =~ .*"${NOW_PLAYING}".* ]]; then
+	if [[ $COMMIT_CONTENTS =~ ^\n.* ]]; then
+		echo "${NOW_PLAYING}${COMMIT_CONTENTS}" > $COMMIT_MSG_FILE
+	else
+		echo "${COMMIT_CONTENTS}${NOW_PLAYING}" > $COMMIT_MSG_FILE
+	fi
+fi
+```
+
+If you want to use this hook in all of your repositories and you're using git
+2.9 or later, you can run `git config --global core.hooksPath
+/path/to/central/hook/location` and then put that `prepare-commit-msg` file in
+that directory, and it will be used for all your git repos.
+
+### Daemon Mode
+
 Run this program as a background process. I use systemd. This bit is left as an
 exercise for the reader for now. You need to pass in a `VAULT_TOKEN`
 environment variable with the Vault token that `git-now-playing` can use to
 read and update secrets with. So running it looks like this:
 
 ```sh
-$ VAULT_TOKEN={vault token here} git-now-playing /path/to/config.hcl
+$ VAULT_TOKEN={vault token here} /path/to/git-now-playing --daemon /path/to/config.hcl
 ```
 
-## Setting Up Your Commit Template
+#### Setting Up Your Commit Template
 
 To set up the output as the default template for your git commit messages, run:
 

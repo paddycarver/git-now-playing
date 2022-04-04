@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -21,11 +23,16 @@ type Player interface {
 }
 
 func main() {
+	log.SetPrefix("[git-now-playing] ")
+	var daemon bool
+	flag.BoolVar(&daemon, "daemon", false, "set to run git-now-playing as a background daemon")
+	flag.Parse()
 	ctx, signalStop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
-	if len(os.Args) < 2 {
+	if len(flag.Args()) < 1 {
 		log.Println("usage: git-now-playing /path/to/config")
+		os.Exit(1)
 	}
-	config, err := parseConfig(os.Args[1])
+	config, err := parseConfig(flag.Arg(0))
 	if err != nil {
 		log.Println("error parsing config:", err)
 		os.Exit(1)
@@ -153,20 +160,29 @@ func main() {
 		})
 	}
 
-	var commitFile string
-	if config.Output == nil || config.Output.Path == "" {
-		commitFile, err = os.UserHomeDir()
+	if daemon {
+
+		var commitFile string
+		if config.Output != nil && config.Output.Path != "" {
+			commitFile = config.Output.Path
+		} else {
+			commitFile, err = os.UserHomeDir()
+			if err != nil {
+				log.Println("error getting home directory:", err)
+				return
+			}
+			commitFile = filepath.Join(commitFile, ".config", "gitmessage")
+		}
+		log.Println("writing to", commitFile)
+		runLoop(ctx, players, commitFile)
+	} else {
+		output, err := getNowPlaying(ctx, players)
 		if err != nil {
-			log.Println("error getting home directory:", err)
+			log.Println("error getting songs currently playing:", err)
 			return
 		}
-		commitFile = filepath.Join(commitFile, ".config", "gitmessage")
-	} else {
-		commitFile = config.Output.Path
+		fmt.Println(output)
 	}
-	log.Println("writing to", commitFile)
-
-	runLoop(ctx, players, commitFile)
 }
 
 func runLoop(ctx context.Context, players []Player, commitFile string) {
@@ -180,29 +196,37 @@ func runLoop(ctx context.Context, players []Player, commitFile string) {
 		case <-ticker.C:
 		}
 
-		var results []TrackInfo
-
-		for _, player := range players {
-			tracks, err := player.GetTrackInfo(ctx)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			results = append(results, tracks...)
+		output, err := getNowPlaying(ctx, players)
+		if err != nil {
+			log.Println(err)
+			continue
 		}
-
-		output := formatResults(results)
 
 		if lastSong == output {
 			continue
 		}
-		err := os.WriteFile(commitFile, []byte(output), 0600)
+		err = os.WriteFile(commitFile, []byte(output), 0600)
 		if err != nil {
 			log.Println("error writing now playing info to", commitFile+":", err)
 			continue
 		}
 		lastSong = output
 	}
+}
+
+func getNowPlaying(ctx context.Context, players []Player) (string, error) {
+	var results []TrackInfo
+
+	for _, player := range players {
+		tracks, err := player.GetTrackInfo(ctx)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		results = append(results, tracks...)
+	}
+
+	return formatResults(results), nil
 }
 
 func formatResults(in []TrackInfo) string {
