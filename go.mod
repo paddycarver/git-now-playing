@@ -4,9 +4,9 @@ go 1.17
 
 require (
 	github.com/hashicorp/hcl/v2 v2.19.1
-	github.com/hashicorp/vault/api v1.10.0
+	github.com/hashicorp/vault/api v1.11.0
 	github.com/segmentio/ksuid v1.0.4
-	github.com/zmb3/spotify/v2 v2.4.0
+	github.com/zmb3/spotify/v2 v2.4.1
 	golang.org/x/oauth2 v0.16.0
 )
 
