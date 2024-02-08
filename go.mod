@@ -4,10 +4,10 @@ go 1.17
 
 require (
 	github.com/hashicorp/hcl/v2 v2.19.1
-	github.com/hashicorp/vault/api v1.10.0
+	github.com/hashicorp/vault/api v1.12.0
 	github.com/segmentio/ksuid v1.0.4
-	github.com/zmb3/spotify/v2 v2.4.0
-	golang.org/x/oauth2 v0.16.0
+	github.com/zmb3/spotify/v2 v2.4.1
+	golang.org/x/oauth2 v0.17.0
 )
 
 require (
@@ -34,8 +34,8 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/zclconf/go-cty v1.13.0 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/crypto v0.19.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
