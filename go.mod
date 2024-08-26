@@ -3,11 +3,11 @@ module paddy.dev/git-now-playing
 go 1.17
 
 require (
-	github.com/hashicorp/hcl/v2 v2.20.1
+	github.com/hashicorp/hcl/v2 v2.22.0
 	github.com/hashicorp/vault/api v1.14.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/zmb3/spotify/v2 v2.4.2
-	golang.org/x/oauth2 v0.21.0
+	golang.org/x/oauth2 v0.22.0
 )
 
 require (
