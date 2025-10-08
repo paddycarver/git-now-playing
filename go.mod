@@ -4,10 +4,10 @@ go 1.24.0
 
 require (
 	github.com/hashicorp/hcl/v2 v2.24.0
-	github.com/hashicorp/vault/api v1.21.0
+	github.com/hashicorp/vault/api v1.22.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/zmb3/spotify/v2 v2.4.3
-	golang.org/x/oauth2 v0.31.0
+	golang.org/x/oauth2 v0.32.0
 )
 
 require (
