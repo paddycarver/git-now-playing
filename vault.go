@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -18,12 +19,12 @@ func (e errVaultKeyNotFound) Is(target error) bool {
 	return ok
 }
 
-func getVaultString(vals map[string]interface{}, key, source string) (string, error) {
+func getVaultString(vals map[string]any, key, source string) (string, error) {
 	dataI, ok := vals["data"]
 	if !ok {
 		return "", fmt.Errorf("No data key in response from Vault for %s", source)
 	}
-	data, ok := dataI.(map[string]interface{})
+	data, ok := dataI.(map[string]any)
 	if !ok {
 		return "", fmt.Errorf("Data key in response from Vault for %s wasn't map[string]interface{}, it was %T", source, dataI)
 	}
@@ -36,4 +37,24 @@ func getVaultString(vals map[string]interface{}, key, source string) (string, er
 		return "", fmt.Errorf("%s data set in %s in vault wasn't string, was %T", key, source, iface)
 	}
 	return val, nil
+}
+
+func getVaultSecretVersion(data map[string]any, source string) (int64, error) {
+	meta, ok := data["metadata"]
+	if !ok {
+		return 0, errVaultKeyNotFound{source: source, key: "metadata"}
+	}
+	metaMap, ok := meta.(map[string]any)
+	if !ok {
+		return 0, fmt.Errorf("data.metadata key in response from Vault %s wasn't map[string]any, it was %T", source, meta)
+	}
+	iface, ok := metaMap["version"]
+	if !ok {
+		return 0, errVaultKeyNotFound{source: source, key: "metadata.version"}
+	}
+	val, ok := iface.(json.Number)
+	if !ok {
+		return 0, fmt.Errorf("metadata.version for %s in vault wasn't json.Number, was %T", source, iface)
+	}
+	return val.Int64()
 }

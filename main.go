@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
@@ -54,7 +55,6 @@ func main() {
 	var players []Player
 
 	if config.Spotify != nil {
-		log.Println("spotify configured")
 		path := config.Spotify.VaultPath
 		if path == "" {
 			path = "spotify"
@@ -62,7 +62,7 @@ func main() {
 		key := config.Vault.getMountPath() + "/data/" + path
 		spotifyInfo, err := vaultClient.Logical().Read(key)
 		if err != nil {
-			log.Printf("Error retrieving Spotify credentials from Vault %q:", key, err)
+			log.Printf("Error retrieving Spotify credentials from Vault %q: %+v\r\n", key, err)
 			return
 		}
 		spotifyClientID, err := getVaultString(spotifyInfo.Data, "client_id", key)
@@ -82,6 +82,11 @@ func main() {
 		}
 		spotifyTokenString, err := getVaultString(spotifyInfo.Data, "token", key)
 		if err != nil && !errors.Is(err, errVaultKeyNotFound{}) {
+			log.Println(err)
+			return
+		}
+		spotifySecretVersion, err := getVaultSecretVersion(spotifyInfo.Data, key)
+		if err != nil {
 			log.Println(err)
 			return
 		}
@@ -113,11 +118,11 @@ func main() {
 					log.Println("Couldn't encode spotify token as JSON:", err)
 					return
 				}
-				_, err = vaultClient.Logical().JSONMergePatch(ctx, key, map[string]interface{}{
-					"options": map[string]interface{}{
-						"cas": 1,
+				_, err = vaultClient.Logical().JSONMergePatch(ctx, key, map[string]any{
+					"options": map[string]any{
+						"cas": spotifySecretVersion,
 					},
-					"data": map[string]interface{}{
+					"data": map[string]any{
 						"token": string(spotifyTokenBytes),
 					},
 				})
@@ -141,7 +146,6 @@ func main() {
 	}
 
 	for _, plex := range config.Plex {
-		log.Println("plex configured")
 		path := plex.VaultPath
 		if path == "" {
 			path = "plex"
@@ -149,7 +153,7 @@ func main() {
 		key := config.Vault.getMountPath() + "/data/" + path
 		plexInfo, err := vaultClient.Logical().Read(key)
 		if err != nil {
-			log.Printf("Error retrieving Plex credentials from Vault for %q:", key, err)
+			log.Printf("Error retrieving Plex credentials from Vault for %q: %+v\r\n", key, err)
 			return
 		}
 		plexToken, err := getVaultString(plexInfo.Data, "token", key)
@@ -233,10 +237,10 @@ func formatResults(in []TrackInfo) string {
 	if len(in) < 1 {
 		return ""
 	}
-	var res string
+	var res strings.Builder
 	for _, track := range in {
-		res += "\n\n"
-		res += track.String()
+		res.WriteString("\n\n")
+		res.WriteString(track.String())
 	}
-	return res
+	return res.String()
 }

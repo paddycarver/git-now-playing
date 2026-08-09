@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 )
 
@@ -46,7 +47,7 @@ type PlexTrackUser struct {
 	Name string `xml:"title,attr"`
 }
 
-func getPlexNowPlaying(ctx context.Context, plexServer, plexToken string) (PlexMediaContainer, error) {
+func getPlexNowPlaying(_ context.Context, plexServer, plexToken string) (PlexMediaContainer, error) {
 	resp, err := http.Get(strings.TrimSuffix(plexServer, "/") + "/status/sessions?X-Plex-Token=" + plexToken)
 	if err != nil {
 		return PlexMediaContainer{}, fmt.Errorf("error getting plex streaming status: %w", err)
@@ -85,14 +86,7 @@ func trackInfoFromPlex(pmc PlexMediaContainer, users []string) []TrackInfo {
 			continue
 		}
 		if len(users) > 0 {
-			var match bool
-			for _, user := range users {
-				if track.User.Name == user {
-					match = true
-					break
-				}
-			}
-			if !match {
+			if !slices.Contains(users, track.User.Name) {
 				log.Printf("User %q doesn't match any of configured users %s, ignoring", track.User.Name, users)
 				continue
 			}
